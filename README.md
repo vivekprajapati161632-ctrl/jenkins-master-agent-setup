@@ -1,266 +1,232 @@
-\# 🚀 Multi-OS Jenkins Setup (Ubuntu + Rocky Linux)
-This project demonstrates the implementation of a distributed Jenkins architecture on AWS EC2, featuring an Ubuntu-based controller and a Rocky Linux (CentOS-based) agent. It showcases cross-platform job execution using secure SSH-based communication.
+Here’s a clean, professional, **GitHub-ready README.md** version of your content 👇
 
-Architecture
-============
+---
 
-[ Jenkins Controller (EC2 - t3.large) ]
-                |
-                |  SSH (Key-based authentication)
-                ↓
-[ Jenkins Agent (EC2 - t3.large) ]
-[ Jenkins Agent (Rocky Linux EC2) ]
+# 🚀 Multi-OS Jenkins Setup (Ubuntu + Rocky Linux)
 
-- Controller schedules jobs
-- Agent executes builds
-- Communication via SSH keys
+This project demonstrates a **distributed Jenkins architecture** on AWS EC2 using:
 
-\---
-Technologies Used
-=================
+* 🧠 **Ubuntu-based Jenkins Controller**
+* ⚙️ **Rocky Linux (CentOS-based) Jenkins Agent**
+* 🔐 Secure **SSH-based communication**
+* 🔄 Cross-platform job execution
 
-\* Jenkins
+---
 
-\* AWS EC2
+## 🏗️ Architecture
 
-\* Ubuntu Linux
+```
+          ┌──────────────────────────────┐
+          │ Jenkins Controller (Ubuntu)  │
+          │ EC2 - t3.large              │
+          └────────────┬────────────────┘
+                       │
+                       │ SSH (Key-based Auth)
+                       ▼
+        ┌──────────────────────────────┐
+        │ Jenkins Agent (Rocky Linux)  │
+        │ EC2 - t3.large              │
+        └──────────────────────────────┘
+```
 
-\* Rocky-9
+### 🔁 Workflow
 
-\* SSH
+* Controller schedules jobs
+* Agent executes builds
+* Communication via SSH keys
 
-\* Git
+---
 
-Step-by-Step Setup
-==================
+## 🛠️ Technologies Used
 
-1️⃣ Launch EC2 Instances
+* Jenkins
+* AWS EC2
+* Ubuntu Linux
+* Rocky Linux (Rocky-9)
+* SSH
+* Git
 
-\* Instance Type: t3.large
+---
 
-\* OS: Ubuntu
+## ⚙️ Step-by-Step Setup
 
-\* Security Group:
+### 1️⃣ Launch EC2 Instances
 
+* **Instance Type:** `t3.large`
+* **Operating Systems:**
 
+  * Ubuntu (Controller)
+  * Rocky Linux (Agent)
+* **Security Group Ports:**
 
-&#x20; \* Port 22 (SSH)
+  * `22` → SSH
+  * `8080` → Jenkins UI
 
-&#x20; \* Port 8080 (Jenkins UI)
+---
 
-\### 2️⃣ Install Java (Both Machines)
-
-
+### 2️⃣ Install Java (Both Machines)
 
 ```bash
-
 sudo apt update
-
 sudo apt install openjdk-21-jdk -y
-
 ```
-\### 3️⃣ Setup Jenkins (Controller)
 
-
+👉 For Rocky Linux (Agent):
 
 ```bash
+sudo dnf install java-21-openjdk -y
+```
 
+---
+
+### 3️⃣ Setup Jenkins (Controller)
+
+```bash
 wget https://get.jenkins.io/war-stable/latest/jenkins.war
-
 java -jar jenkins.war --httpPort=8080
+```
+
+🌐 Access Jenkins UI:
 
 ```
-Access Jenkins:
-http://<controller-ip>:8080
+http://<CONTROLLER_PUBLIC_IP>:8080
+```
 
-Step: 3.1: for centos:
-For centOS
+---
 
-Implementation Steps
-====================
+### 4️⃣ Configure SSH (Controller → Agent)
 
-Launched Rocky Linux EC2 instance (AWS Marketplace)
-Installed Java (OpenJDK 21) using dnf
-Configured passwordless SSH from controller → agent
-Added Rocky node in Jenkins using SSH launcher
-Verified agent connectivity and executor availability
-Executed job on Rocky agent using label restriction
+#### 🎯 Goal:
 
-------->>>
-4️⃣ Configure SSH (Controller → Agent)
-setup ssh keys:- goal: Controller should connect to Agent WITHOUT password
+Controller connects to Agent **without password**
 
-Login to controller: 
-bash:
+---
+
+#### 🔹 Step 1: Login to Controller
+
+```bash
 ssh -i keypair.pem ubuntu@<CONTROLLER_PUBLIC_IP>
-generate ssh keys:
+```
+
+#### 🔹 Step 2: Generate SSH Key
+
+```bash
 ssh-keygen
---> public and private keys
-Copy public key:
+```
+
+#### 🔹 Step 3: Copy Public Key
+
+```bash
 cat ~/.ssh/id_ed25519.pub
+```
 
-login to agent:
+---
+
+#### 🔹 Step 4: Login to Agent
+
+```bash
 ssh -i keypair.pem ubuntu@<AGENT_PUBLIC_IP>
+```
 
-Add key on Agent:
+#### 🔹 Step 5: Add Key to Agent
+
+```bash
 mkdir -p ~/.ssh
 nano ~/.ssh/authorized_keys
------
-Paste the key
-👉 Save (Ctrl + X → Y → Enter)
------
-Fix permissions: 
+```
+
+👉 Paste the copied public key and save
+
+---
+
+#### 🔹 Step 6: Fix Permissions
+
+```bash
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
+```
 
-FINAL TEST (IMPORTANT): controller: ssh ubuntu@<AGENT_PUBLIC_IP>
-\---
+---
 
+ Step 7: Final Test ✅
 
+```bash
+ssh ubuntu@<AGENT_PUBLIC_IP>
+```
 
-\### 5️⃣ Add Agent in Jenkins
+---
 
+Add Agent in Jenkins
 
+Navigate to:
 
-\* Go to: Manage Jenkins → Nodes → New Node
-
-\* Name: agent-1
-
-\* Type: Permanent Agent
-
-
+**Manage Jenkins → Nodes → New Node**
 
 Configuration:
 
+* **Name:** `agent-1`
+* **Type:** Permanent Agent
+* **Remote Root Directory:** `/home/ubuntu`
+* **Labels:** `linux`
+* **Launch Method:** Launch via SSH
+* **Credentials:** Add SSH private key
+* **Host Verification:** Non-verifying
 
+---
 
-\* Remote root directory: `/home/ubuntu`
+### 6️⃣ Test Job Execution
 
-\* Labels: `linux`
+Create a **Freestyle Job**
 
-\* Launch method: Launch via SSH
-
-\* Credentials: SSH private key
-
-\* Host verification: Non-verifying
-
-
-
-\---
-
-
-
-\### 6️⃣ Test Job Execution
-
-
-
-Create a Freestyle Job:
-
-
-
-Build Step:
-
-
+#### Build Step:
 
 ```bash
-
 echo "Running on agent"
-
 hostname
-
 ```
 
-
-
-Restrict job to:
-
-
+ Restrict Job To:
 
 ```
-
 linux
-
 ```
 
+---
 
-
-\---
-
-
-
-\## ✅ Output
-
-
-
-The job executes on the agent machine:
-
-
+ Output
 
 ```
-
 Running on agent
-
 ip-172-31-xxx-xxx
+```
 
-\## 🎯 Key Learnings
+✔️ Job successfully executed on the **agent machine**
 
+---
 
+ Key Learnings
 
-\* Jenkins distributed architecture
+* Jenkins Distributed Architecture
+* Controller vs Agent Concept
+* SSH-Based Authentication
+* Remote Job Execution
+* AWS EC2 Deployment
 
-\* Controller vs Agent concept
+---
 
-\* SSH-based authentication
+ Outcome
 
-\* Remote job execution
+Successfully implemented a **Jenkins Master-Agent setup**:
 
-\* AWS EC2 setup
-
-
-
-\---
-
-
-
-\## 🚀 Outcome
-
-
-
-Successfully implemented a \*\*Jenkins Master-Agent setup\*\* where:
+* 🧠 Controller schedules jobs
+* ⚙️ Agent executes jobs
+* 🔐 Secure communication via SSH
 
 
-
-\* Controller schedules jobs
-
-\* Agent executes jobs
-
-\* Communication is done via SSH
-
-
-
-\---
-
-
-
-\## 📸 Future Improvements
-
-
-
-\* Add screenshots of setup
-
-\* Convert to Jenkins Pipeline
-
-\* Integrate with GitHub (auto trigger)
-
-\* Add multiple agents
-
-=======================================================
-
-
-
-
+Future Improvements
+- Add setup screenshots
+-Convert to Jenkins Pipeline
+-GitHub integration (auto-trigger builds)
+-Add multiple agents
 Author
-Mohit Verma
-
-
-
+Vivek Prajapati
